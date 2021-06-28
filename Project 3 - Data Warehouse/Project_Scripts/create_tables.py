@@ -40,28 +40,29 @@ def debugMode(a):
 
     if mode == True:
 
-        if a == 1: # Line: 142
+        if a == 1: # Line: 145
             print("createRedshiftCluster(): Pulling of DWH Parameters was performed successfully")
 
-        elif a == 2: # Line: 153
+        elif a == 2: # Line: 156
              print("createRedshiftCluster(): All clients were successfully created.")
 
-        elif a == 3: # Line: 185
+        elif a == 3: # Line: 187
             print("createRedshiftCluster(): IAM Role creation performed successfully.")
+            print('RoleARN: {}'.format(roleArn))
 
-        elif a == 4: # Line: 211
+        elif a == 4: # Line: 214
             checkClusterStatus()
             print("\n")
 
-        elif a == 5: # Line: 217
+        elif a == 5: # Line: 223
             checkClusterStatus()
             print("\n")
 
-        elif a == 6: # Line: 223
+        elif a == 6: # Line: 303
             print("Connection Details: ")
             print(connValues)
 
-        elif a == 7: # Line: 296
+        elif a == 7: # Line: 231
             print("deleteRedshiftCluster(): IAM Role deletion performed successfully.")
 
         elif a == 8: # Line: 23
@@ -114,6 +115,8 @@ def createRedshiftCluster():
     global iam                         # Used to identify the IAM role
     global DWH_IAM_ROLE_NAME
     global PolicyArn
+    global roleArn
+    global debug
 
     #### DWH Parameters ####################################################################
     ## Load the Data Warehouse Parameters we set in dwh.cfg to create a Redshift database ##
@@ -179,9 +182,8 @@ def createRedshiftCluster():
 
     # Get IAM Role ARN
     roleArn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
-    print('RoleARN: {}'.format(roleArn))
 
-    # ~~~~ DEBUG ~~~~ Print if IAM role creation is successful
+    # ~~~~ DEBUG ~~~~ Print if IAM role and RoleARN if creation is successful
     debugMode(3)
 
     #### Redshift Cluster Creation ###################################
@@ -207,14 +209,20 @@ def createRedshiftCluster():
     except Exception as e:
         print("Error with creating Redshift Cluster: {}".format(e))
 
-    # ~~~~ DEBUG ~~~~ Check if redshift cluster is being created
-    debugMode(4)
+    if mode == True:
+        # ~~~~ DEBUG ~~~~ Check if redshift cluster is being created
+        debugMode(4)
+    else:
+        checkClusterStatus()
 
 def deleteRedshiftCluster():
     redshift.delete_cluster(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER, SkipFinalClusterSnapshot=True)
 
-    # ~~~~ DEBUG ~~~~ Check if redshift cluster is being deleted
-    debugMode(5)
+    if mode == True:
+        # ~~~~ DEBUG ~~~~ Check if redshift cluster is being deleted
+        debugMode(5)
+    else:
+        checkClusterStatus()
 
     iam.detach_role_policy(RoleName=DWH_IAM_ROLE_NAME, PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess")
     iam.delete_role(RoleName=DWH_IAM_ROLE_NAME)
@@ -244,17 +252,17 @@ def checkClusterStatus():
                 status = True
                 waiting = False
 
-            elif ((clusterStatus == 'creating') and (waiting == False)):
+            elif ((clusterStatus == 'creating') and (waiting == False)) and (mode == True):
                 print ("CLUSTER STATUS: Cluster is being created...")
                 status = False
                 waiting = True
 
-            elif ((clusterStatus == 'deleting') and (waiting == False)):
+            elif ((clusterStatus == 'deleting') and (waiting == False) and (mode == True)):
                 print ("CLUSTER STATUS: Cluster is being deleted...")
                 status = False
                 waiting = True
 
-            elif waiting == True:
+            elif ((waiting == True) and (mode == True)):
                 print("...")
                 time.sleep(10)
 
@@ -287,7 +295,6 @@ def main():
 
     # Create the Redshift cluster
     createRedshiftCluster()
-    #time.sleep(30)
 
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
     connValues = ("   host={} \n   dbname={} \n   user={} \n   password={} \n   port={}".format(*config['CLUSTER'].values()))

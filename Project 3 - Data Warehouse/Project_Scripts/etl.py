@@ -79,8 +79,10 @@ def debugMode(a):
 
             i = i + 1
 
-    else:
-        pass
+    elif mode == False:
+        if a == 5: # Line: 111
+            print("\nETL Process has run successfully")
+
 
 #####################################################################################################
 #### MAIN METHOD ####################################################################################
@@ -103,8 +105,10 @@ def main():
     cur = conn.cursor()
 
     load_staging_tables(cur, conn)
-
     insert_tables(cur, conn)
+
+    # ~~~~ PSUEDO-DEBUG ~~~~ Notify that ETL Process has completed
+    debugMode(5)
 
     conn.close()
 
